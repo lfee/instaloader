@@ -524,7 +524,7 @@ class InstaloaderContext:
             if end_cursor:
                 query_variables['after'] = end_cursor
             data = _query()
-        yield from (edge['node'] for edge in data['edges'])
+        yield from (dict(edge['node'], end_cursor=data['page_info']['end_cursor']) for edge in data['edges'])
 
         while data['page_info']['has_next_page']:
             query_variables['after'] = data['page_info']['end_cursor']
