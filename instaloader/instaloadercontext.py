@@ -18,6 +18,8 @@ import requests.utils
 
 from .exceptions import *
 
+DEFAULT_GRAPHQL_PAGE_LENGTH=50
+
 
 def copy_session(session: requests.Session, request_timeout: Optional[float] = None) -> requests.Session:
     """Duplicates a requests.Session."""
@@ -52,7 +54,8 @@ class InstaloaderContext:
     """
 
     def __init__(self, sleep: bool = True, quiet: bool = False, user_agent: Optional[str] = None,
-                 max_connection_attempts: int = 3, request_timeout: Optional[float] = None):
+                 max_connection_attempts: int = 3, page_size: int = DEFAULT_GRAPHQL_PAGE_LENGTH,
+                 request_timeout: Optional[float] = None):
 
         self.user_agent = user_agent if user_agent is not None else default_user_agent()
         self.request_timeout = request_timeout
@@ -61,7 +64,7 @@ class InstaloaderContext:
         self.sleep = sleep
         self.quiet = quiet
         self.max_connection_attempts = max_connection_attempts
-        self._graphql_page_length = 50
+        self._graphql_page_length = page_size
         self._root_rhx_gis = None
         self.two_factor_auth_pending = None
 
@@ -497,7 +500,8 @@ class InstaloaderContext:
                           query_referer: Optional[str],
                           edge_extractor: Callable[[Dict[str, Any]], Dict[str, Any]],
                           rhx_gis: Optional[str] = None,
-                          first_data: Optional[Dict[str, Any]] = None) -> Iterator[Dict[str, Any]]:
+                          first_data: Optional[Dict[str, Any]] = None,
+                          end_cursor = None) -> Iterator[Dict[str, Any]]:
         """Retrieve a list of GraphQL nodes."""
 
         def _query():
@@ -514,15 +518,19 @@ class InstaloaderContext:
                 else:
                     raise
 
-        if first_data:
+        if first_data and not end_cursor:
             data = first_data
         else:
+            if end_cursor:
+                query_variables['after'] = end_cursor
             data = _query()
         yield from (edge['node'] for edge in data['edges'])
+
         while data['page_info']['has_next_page']:
             query_variables['after'] = data['page_info']['end_cursor']
             data = _query()
-            yield from (edge['node'] for edge in data['edges'])
+            yield from (dict(edge['node'], end_cursor=data['page_info']['end_cursor'])
+                        for edge in data['edges'])
 
     def get_iphone_json(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """JSON request to ``i.instagram.com``.

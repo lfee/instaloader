@@ -213,6 +213,12 @@ class Post:
         """The ID of the Post's owner."""
         return self.owner_profile.userid
 
+
+    @property
+    def end_cursor(self):
+        """A cursor that can be saved to resume a fetch with this post.."""
+        return self._node.get("end_cursor", None)
+
     @property
     def date_local(self) -> datetime:
         """Timestamp when the post was created (local time zone)."""
@@ -787,7 +793,7 @@ class Profile:
 	   Use :attr:`profile_pic_url`."""
         return self.profile_pic_url
 
-    def get_posts(self) -> Iterator[Post]:
+    def get_posts(self, end_cursor=None) -> Iterator[Post]:
         """Retrieve all posts from a profile."""
         self._obtain_metadata()
         yield from (Post(self._context, node, self) for node in
@@ -796,7 +802,8 @@ class Profile:
                                                     'https://www.instagram.com/{0}/'.format(self.username),
                                                     lambda d: d['data']['user']['edge_owner_to_timeline_media'],
                                                     self._rhx_gis,
-                                                    self._metadata('edge_owner_to_timeline_media')))
+                                                    self._metadata('edge_owner_to_timeline_media'),
+                                                    end_cursor))
 
     def get_saved_posts(self) -> Iterator[Post]:
         """Get Posts that are marked as saved by the user."""

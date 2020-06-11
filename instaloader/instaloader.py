@@ -20,7 +20,7 @@ import requests
 import urllib3  # type: ignore
 
 from .exceptions import *
-from .instaloadercontext import InstaloaderContext
+from .instaloadercontext import InstaloaderContext, DEFAULT_GRAPHQL_PAGE_LENGTH
 from .structures import (Hashtag, Highlight, JsonExportable, Post, PostLocation, Profile, Story, StoryItem,
                          save_structure_to_file, load_structure_from_file)
 
@@ -153,6 +153,7 @@ class Instaloader:
        txt file.
     :param storyitem_metadata_txt_pattern: :option:`--storyitem-metadata-txt`, default is empty (=none)
     :param max_connection_attempts: :option:`--max-connection-attempts`
+    :param page_size: number of items per page to be fetched at a time, defaults to 50
     :param commit_mode: :option:`--commit-mode`
     :param request_timeout: :option:`--request-timeout`, set per-request timeout (seconds)
 
@@ -177,10 +178,13 @@ class Instaloader:
                  post_metadata_txt_pattern: str = None,
                  storyitem_metadata_txt_pattern: str = None,
                  max_connection_attempts: int = 3,
+                 page_size: int = DEFAULT_GRAPHQL_PAGE_LENGTH,
                  request_timeout: Optional[float] = None,
                  commit_mode: bool = False):
 
-        self.context = InstaloaderContext(sleep, quiet, user_agent, max_connection_attempts, request_timeout)
+        self.context = InstaloaderContext(
+            sleep, quiet, user_agent, max_connection_attempts, page_size, request_timeout
+        )
 
         # configuration parameters
         self.dirname_pattern = dirname_pattern or "{target}"
